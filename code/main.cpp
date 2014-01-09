@@ -1,85 +1,105 @@
 #include "cvLibs.h"
-#include "adaptiveBinaryWindow.h"
+#include "matrix.h"
+#include "ABW.h"
+#include "matrixio.h"
 #include <iostream>
 
-using namespace cv;
+//#define DRAW_OVERLAY
+
 using std::cout;
 using std::endl;
+using std::stringstream;
 
-int main (int argc, char** argv)
+void formula1(double& dpq, double Lp, double Lq, double ap, double aq, double bp, double bq); /// dirty
+
+int main(int argc, char** argv)
 {
 
 	/// input
-	Mat image1 = imread(argv[1]);
-	Mat image2 = imread(argv[2]);
-	
+	Mat image1{ imread(argv[1]) };
+	Mat image2{ imread(argv[2]) };
+	int width1{ image1.cols };
+	int height1{ image1.rows };
+	int width2{ image2.cols };
+	int height2{ image2.rows };
+
 	imwrite("image1.png", image1);
-	
+
 	/// CIELab conversion
-	Mat image1_lab;
-	Mat image2_lab;
+	Mat image1_lab{};
+	Mat image2_lab{};
 	cvtColor(image1, image1_lab, CV_RGB2Lab);
 	cvtColor(image2, image2_lab, CV_RGB2Lab);
 
-	// ABW construction
-	adaptiveBinaryWindow abw{512, 512, 256};
-	abw.initialize_values();
+	/// parameters
+	double threshold{ 8.0 };
+	int const bucketSize{ 16 };
 
-	/*for (int i = 0; i < abw.get_size(); i++)
+	/// TODO: for each pixel of image1
+	for (int i{ bucketSize / 2 }; i < image1.rows - bucketSize / 2; i+=bucketSize)
 	{
-		for (int j = 0; j < abw.get_size(); j++)
+		for (int j{ bucketSize / 2 }; j < image1.cols - bucketSize / 2; j += bucketSize)
 		{
-			cout << abw.get_values(i, j);
-		}
-		cout << endl;
-	}*/
+			/// bucket construction
+			ABW testWindow{ i, j, bucketSize };
 
-	// ABW shape determination
+			int xp{ testWindow.get_posx() };
+			int yp{ testWindow.get_posy() };
+			int* xp_ptr{ &xp };
+			int* yp_ptr{ &yp };
 
-	int size{ abw.get_size() };
+			double Lp{};
+			double ap{};
+			double bp{};
 
-	double Lp = readFromLeftImage(image1_lab, 0, abw.get_posx(), abw.get_posy());
-	double ap = readFromLeftImage(image1_lab, 1, abw.get_posx(), abw.get_posy());
-	double bp = readFromLeftImage(image1_lab, 2, abw.get_posx(), abw.get_posy());
+			/// ABW shape determination
+			readLabPixel(image1_lab, Lp, ap, bp, xp, yp);
 
-	int topEdge{ abw.get_posy() + size / 2 };
-	int leftEdge{ abw.get_posx() - size / 2 };
-	double threshold{ 1 };
+			/// for each pixel of bucket
+			int yq{ yp + bucketSize / 2 };
+			int xq{ xp - bucketSize / 2 };
+			//int* xq_ptr{ &xq };
+			//int* yq_ptr{ &yq };
 
-	for (int i = 0; i < size; i++)
-	{
-		for (int j = 0; j < size; j++)
-		{
-			double Lq = readFromLeftImage(image1_lab, 0, leftEdge + i, topEdge - j);
-			double aq = readFromLeftImage(image1_lab, 1, leftEdge + i, topEdge - j);
-			double bq = readFromLeftImage(image1_lab, 2, leftEdge + i, topEdge - j);
+			double Lq{};
+			double aq{};
+			double bq{};
 
-			double dpq{0};
-			dpq += pow((Lp - Lq), 2);
-			dpq += pow((ap - aq), 2);
-			dpq += pow((bp - bq), 2);
-			dpq = sqrt(dpq);
+			double dpq{};
 
-			if (dpq < threshold){ abw.set_value(i, j, 255); }
+#ifdef DRAW_OVERLAY
+			Mat image1_copy{ image1.clone() };
+#endif
+			for (int k = 0; k < bucketSize; k++)
+			{
+				for (int l = 0; l < bucketSize; l++)
+				{
+					readLabPixel(image1_lab, Lq, aq, bq, xq + k, yq - l);
+					formula1(dpq, Lp, Lq, ap, aq, bp, bq);
+					if (dpq < threshold){ testWindow.set_value(k, l, 255); };
+#ifdef DRAW_OVERLAY
+					image1_copy.at<Vec3b>(xq + k, yq - l).val[0] = testWindow.get_value(k, l);
+					image1_copy.at<Vec3b>(xq + k, yq - l).val[1] = testWindow.get_value(k, l);
+					image1_copy.at<Vec3b>(xq + k, yq - l).val[2] = testWindow.get_value(k, l);
+#endif
+				}
+			}
+#ifdef DRAW_OVERLAY
+			stringstream filename{};
+			filename << "image1_abw_" << i << "_" << j << "_size" << bucketSize << "_t" << threshold << ".png";
+			imwrite(filename.str().c_str(), image1_copy);
+#endif
 		}
 	}
-
-	// ABW overlay creation
-
-	int topEdge1{ abw.get_posy() + size / 2 };
-	int leftEdge1{ abw.get_posx() - size / 2 };
-
-	for (int i = 0; i < size; i++)
-	{
-		for (int j = 0; j < size; j++)
-		{
-			image1.at<Vec3b>(leftEdge1 + i, topEdge1 - j).val[0] = abw.get_values(i, j);
-			image1.at<Vec3b>(leftEdge1 + i, topEdge1 - j).val[1] = abw.get_values(i, j);
-			image1.at<Vec3b>(leftEdge1 + i, topEdge1 - j).val[2] = abw.get_values(i, j);
-		}
-	}
-
-	imwrite("image1_abw.png", image1);
 
 	return 0;
+}
+
+void formula1(double& dpq, double Lp, double Lq, double ap, double aq, double bp, double bq)
+{
+	dpq = 0;
+	dpq += pow((Lp - Lq), 2);
+	dpq += pow((ap - aq), 2);
+	dpq += pow((bp - bq), 2);
+	dpq = sqrt(dpq);
 }

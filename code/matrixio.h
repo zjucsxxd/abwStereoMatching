@@ -2,6 +2,4 @@
 
 #include "cvLibs.h"
 
-using namespace cv;
-
-double readFromLeftImage(Mat &image1_lab, int channel, int i, int j);
+void readLabPixel(Mat& image1_lab, double& L, double& a, double& b, int x, int y);
