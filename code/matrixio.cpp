@@ -2,7 +2,7 @@
 
 #include "matrixio.h"
 
-void readLabPixel(Mat& image, double& L, double& a, double& b, int x, int y)
+void readLabPixel(Mat& image, double& L, double& a, double& b, int row, int col)
 {
 	//int rows{ image.rows };
 	//int cols{ image.cols };
@@ -10,9 +10,9 @@ void readLabPixel(Mat& image, double& L, double& a, double& b, int x, int y)
 	//{
 		//for (int j{ 0 }; j < cols; j++)
 		//{
-			L = image.at<Vec3b>(x, y).val[0];
-			a = image.at<Vec3b>(x, y).val[1];
-			b = image.at<Vec3b>(x, y).val[2];
+			L = image.at<Vec3b>(row, col).val[0];
+			a = image.at<Vec3b>(row, col).val[1];
+			b = image.at<Vec3b>(row, col).val[2];
 		//}
 	//}
 }

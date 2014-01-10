@@ -4,13 +4,13 @@
 #include "matrixio.h"
 #include <iostream>
 
-//#define DRAW_OVERLAY
+#define DRAW_OVERLAY
 
 using std::cout;
 using std::endl;
 using std::stringstream;
 
-void formula1(double& dpq, double Lp, double Lq, double ap, double aq, double bp, double bq); /// dirty
+void formula1(double& dpq, double Lp, double Lq, double ap, double aq, double bp, double bq);
 
 int main(int argc, char** argv)
 {
@@ -33,31 +33,33 @@ int main(int argc, char** argv)
 
 	/// parameters
 	double threshold{ 8.0 };
-	int const bucketSize{ 16 };
+	int const bucketSize{ 512 };
 
-	/// TODO: for each pixel of image1
-	for (int i{ bucketSize / 2 }; i < image1.rows - bucketSize / 2; i+=bucketSize)
+	/// for each pixel of image1
+	for (int i{ 0 }; i < image1.rows; i += bucketSize)
 	{
-		for (int j{ bucketSize / 2 }; j < image1.cols - bucketSize / 2; j += bucketSize)
+		for (int j{ 0 }; j < image1.cols; j += bucketSize)
 		{
 			/// bucket construction
-			ABW testWindow{ i, j, bucketSize };
-
-			int xp{ testWindow.get_posx() };
-			int yp{ testWindow.get_posy() };
-			int* xp_ptr{ &xp };
-			int* yp_ptr{ &yp };
+			ABW testWindow{ j, i, bucketSize };
 
 			double Lp{};
 			double ap{};
 			double bp{};
 
 			/// ABW shape determination
-			readLabPixel(image1_lab, Lp, ap, bp, xp, yp);
+			readLabPixel(image1_lab, Lp, ap, bp, i, j);
 
-			/// for each pixel of bucket
-			int yq{ yp + bucketSize / 2 };
-			int xq{ xp - bucketSize / 2 };
+			int x1{ testWindow.get_x1() };
+			int y1{ testWindow.get_y1() };
+			int x2{ testWindow.get_x2() };
+			int y2{ testWindow.get_y2() }; 
+
+			if (x1 < 0) { x1 = 0; }
+			if (y1 < 0) { y1 = 0; }
+			if (x2 > width1) { x2 = width1; }
+			if (y2 > height1) { y2 = height1; }
+						
 			//int* xq_ptr{ &xq };
 			//int* yq_ptr{ &yq };
 
@@ -67,20 +69,21 @@ int main(int argc, char** argv)
 
 			double dpq{};
 
+			/// for each pixel of bucket
 #ifdef DRAW_OVERLAY
 			Mat image1_copy{ image1.clone() };
 #endif
-			for (int k = 0; k < bucketSize; k++)
+			for (int k{ x1 }; k < x2; k++)
 			{
-				for (int l = 0; l < bucketSize; l++)
+				for (int l{ y1 }; l < y2; l++)
 				{
-					readLabPixel(image1_lab, Lq, aq, bq, xq + k, yq - l);
+					readLabPixel(image1_lab, Lq, aq, bq, l, k);
 					formula1(dpq, Lp, Lq, ap, aq, bp, bq);
-					if (dpq < threshold){ testWindow.set_value(k, l, 255); };
+					if (dpq < threshold) { testWindow.set_value(k - x1, l - y1, 255); }
 #ifdef DRAW_OVERLAY
-					image1_copy.at<Vec3b>(xq + k, yq - l).val[0] = testWindow.get_value(k, l);
-					image1_copy.at<Vec3b>(xq + k, yq - l).val[1] = testWindow.get_value(k, l);
-					image1_copy.at<Vec3b>(xq + k, yq - l).val[2] = testWindow.get_value(k, l);
+					image1_copy.at<Vec3b>(l, k).val[0] = testWindow.get_value(k - x1, l - y1);
+					image1_copy.at<Vec3b>(l, k).val[1] = testWindow.get_value(k - x1, l - y1);
+					image1_copy.at<Vec3b>(l, k).val[2] = testWindow.get_value(k - x1, l - y1);
 #endif
 				}
 			}
