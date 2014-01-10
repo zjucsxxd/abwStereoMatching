@@ -215,4 +215,4 @@ pip-log.txt
 .mr.developer.cfg
 
 # Output images
-*.png
+/*.png
