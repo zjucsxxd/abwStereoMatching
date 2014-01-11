@@ -41,7 +41,7 @@ int main(int argc, char** argv)
 		for (int j{ 0 }; j < image1.cols; j += bucketSize)
 		{
 			/// bucket construction
-			ABW testWindow{ j, i, bucketSize };
+			ABW<double> testWindow{ j, i, bucketSize };
 
 			double Lp{};
 			double ap{};

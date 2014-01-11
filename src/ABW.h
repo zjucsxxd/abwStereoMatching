@@ -3,7 +3,7 @@
 #include "matrix.h"
 #include <iostream>
 
-class ABW : public matrix{
+template <class T> class ABW : public matrix<T> {
 
 private:
 	int _posx;
@@ -65,3 +65,12 @@ public:
 	int centery{ this->get_cols() / 2 };
 	}*/
 };
+
+template <class T> void ABW<T>::initialize_borders()
+{
+	int size{ get_size() };
+	_x1 = _posx - size / 2;
+	_y1 = _posy - size / 2;
+	_x2 = _posx + size / 2;
+	_y2 = _posy + size / 2;
+}
