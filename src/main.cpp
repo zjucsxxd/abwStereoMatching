@@ -37,7 +37,7 @@ int main(int argc, char** argv)
 		for (int j{ 0 }; j < image1.cols; j += bucketSize)
 		{
 			/// bucket construction
-			ABW<double> testWindow{ j, i, bucketSize };
+			ABW <double> testWindow{ j, i, bucketSize };
 
 			double Lp{};
 			double ap{};
@@ -49,15 +49,12 @@ int main(int argc, char** argv)
 			int x1{ testWindow.get_x1() };
 			int y1{ testWindow.get_y1() };
 			int x2{ testWindow.get_x2() };
-			int y2{ testWindow.get_y2() }; 
+			int y2{ testWindow.get_y2() };
 
 			if (x1 < 0) { x1 = 0; }
 			if (y1 < 0) { y1 = 0; }
 			if (x2 > width1) { x2 = width1; }
 			if (y2 > height1) { y2 = height1; }
-						
-			//int* xq_ptr{ &xq };
-			//int* yq_ptr{ &yq };
 
 			double Lq{};
 			double aq{};

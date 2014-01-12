@@ -2,14 +2,16 @@
 
 #include "stl.h"
 
-template <class T> class matrix{
+template <class T> class matrix {
 
-private :
+private:
+
 	int _rows;
 	int _cols;
 	std::valarray < std::valarray < T > > _values;
 
-public :
+public:
+
 	matrix() :
 		_rows{ 1 }, _cols{ 1 }, _values{}
 	{
@@ -45,7 +47,7 @@ public :
 
 };
 
-template <class T> void matrix<T>::flood_zeros()
+template <class T> void matrix <T> ::flood_zeros()
 {
 	_values.resize(_rows);
 	for (int i = 0; i < _cols; i++)
@@ -54,7 +56,7 @@ template <class T> void matrix<T>::flood_zeros()
 	}
 }
 
-template <class T> void matrix<T>::flood_values(T value)
+template <class T> void matrix <T> ::flood_values(T value)
 {
 	_values.resize(_rows);
 	for (int i = 0; i < _cols; i++)
@@ -63,7 +65,7 @@ template <class T> void matrix<T>::flood_values(T value)
 	}
 }
 
-template <class T> void matrix<T>::make_identity()
+template <class T> void matrix <T> ::make_identity()
 {
 	if (_rows == _cols)
 	{
