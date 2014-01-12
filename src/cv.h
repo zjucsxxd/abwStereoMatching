@@ -5,8 +5,6 @@
 #include <opencv2/imgproc/imgproc.hpp>
 
 using cv::Mat;
-
+using cv::Vec3b;
 using cv::imread;
 using cv::imwrite;
-
-using cv::Vec3b;

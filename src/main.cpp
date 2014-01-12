@@ -1,14 +1,10 @@
-#include "cvLibs.h"
+#include "stl.h"
+#include "cv.h"
 #include "matrix.h"
 #include "ABW.h"
 #include "matrixio.h"
-#include <iostream>
 
 #define DRAW_OVERLAY
-
-using std::cout;
-using std::endl;
-using std::stringstream;
 
 void formula1(double& dpq, double Lp, double Lq, double ap, double aq, double bp, double bq);
 

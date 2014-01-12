@@ -33,10 +33,11 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup />
   <ItemGroup>
+    <ClInclude Include="cv.h" />
     <ClInclude Include="src\ABW.h" />
-    <ClInclude Include="src\cvLibs.h" />
     <ClInclude Include="src\matrix.h" />
     <ClInclude Include="src\matrixio.h" />
+    <ClInclude Include="stl.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\ABW.cpp" />

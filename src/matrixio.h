@@ -1,5 +1,5 @@
 #pragma once
 
-#include "cvLibs.h"
+#include "cv.h"
 
 void readLabPixel(Mat& image1_lab, double& L, double& a, double& b, int row, int col);

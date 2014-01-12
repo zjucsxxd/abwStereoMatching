@@ -1,7 +1,6 @@
 #pragma once
 
 #include "matrix.h"
-#include <iostream>
 
 template <class T> class ABW : public matrix<T> {
 
