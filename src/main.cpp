@@ -2,7 +2,7 @@
 #include "cv.h"
 #include "cvInterface.h"
 #include "valarray2d.h"
-#include "ABW.h"
+#include "bucket.h"
 
 #define DRAW_OUTPUT
 // #define WRITE_OUTPUT
@@ -38,25 +38,25 @@ int main(int argc, char** argv)
 
 	// for each pixel of image1
 #ifdef DRAW_OUTPUT
-	for (int i{ bucketSize / 2 }; i < height1; i += bucketSize)
+	for (unsigned int row{ bucketSize / 2 }; row < height1; row += bucketSize)
 	{
-		for (int j{ bucketSize / 2 }; j < width1; j += bucketSize)
+		for (unsigned int col{ bucketSize / 2 }; col < width1; col += bucketSize)
 		{
 #else
-	for (int i{ 0 }; i < 480; i++)
+	for (unsigned int row{ 0 }; row < 480; row++)
 	{
-		for (int j{ 0 }; j < 640; j++)
+		for (unsigned int col{ 0 }; col < 640; col++)
 		{
 #endif
 			// bucket construction
-			ABW <double> testWindow{ j, i, bucketSize };
+			bucket <double> testWindow{ row, col, bucketSize };
 
 			double Lp{};
 			double ap{};
 			double bp{};
 
 			// ABW shape determination
-			readLabPixel(image1_lab, Lp, ap, bp, i, j);
+			readLabPixel(image1_lab, Lp, ap, bp, row, col);
 
 			int x1{ testWindow.get_x1() };
 			int y1{ testWindow.get_y1() };

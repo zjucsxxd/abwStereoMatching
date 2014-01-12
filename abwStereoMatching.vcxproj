@@ -33,14 +33,14 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup />
   <ItemGroup>
-    <ClInclude Include="src\ABW.h" />
+    <ClInclude Include="src\bucket.h" />
     <ClInclude Include="src\cv.h" />
     <ClInclude Include="src\valarray2d.h" />
     <ClInclude Include="src\cvInterface.h" />
     <ClInclude Include="src\stl.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\ABW.cpp" />
+    <ClCompile Include="src\bucket.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\valarray2d.cpp" />
     <ClCompile Include="src\cvInterface.cpp" />
