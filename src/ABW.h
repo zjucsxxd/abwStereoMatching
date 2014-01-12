@@ -1,8 +1,8 @@
 #pragma once
 
-#include "matrix.h"
+#include "valarray2d.h"
 
-template <class T> class ABW : public matrix <T> {
+template <class T> class ABW : public valarray2d <T> {
 
 private:
 
@@ -13,17 +13,17 @@ private:
 public:
 
 	ABW() :
-		matrix{}, _posx{ 0 }, _posy{ 0 }
+		valarray2d{}, _posx{ 0 }, _posy{ 0 }
 	{
 		initialize_borders();
 	}
 	ABW(int centerPixelX, int centerPixelY) :
-		matrix{}, _posx{ centerPixelX }, _posy{ centerPixelY }
+		valarray2d{}, _posx{ centerPixelX }, _posy{ centerPixelY }
 	{
 		initialize_borders();
 	}
 	ABW(int centerPixelX, int centerPixelY, unsigned int windowSize) :
-		matrix{ windowSize, windowSize }, _posx{ centerPixelX }, _posy{ centerPixelY }
+		valarray2d{ windowSize, windowSize }, _posx{ centerPixelX }, _posy{ centerPixelY }
 	{
 		initialize_borders();
 	}

@@ -35,14 +35,14 @@
   <ItemGroup>
     <ClInclude Include="src\ABW.h" />
     <ClInclude Include="src\cv.h" />
-    <ClInclude Include="src\matrix.h" />
+    <ClInclude Include="src\valarray2d.h" />
     <ClInclude Include="src\matrixio.h" />
     <ClInclude Include="src\stl.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\ABW.cpp" />
     <ClCompile Include="src\main.cpp" />
-    <ClCompile Include="src\matrix.cpp" />
+    <ClCompile Include="src\valarray2d.cpp" />
     <ClCompile Include="src\matrixio.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

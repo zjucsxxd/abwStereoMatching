@@ -1,6 +1,6 @@
 #include "stl.h"
 #include "cv.h"
-#include "matrix.h"
+#include "valarray2d.h"
 #include "ABW.h"
 #include "matrixio.h"
 
