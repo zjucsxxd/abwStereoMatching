@@ -1,6 +1,6 @@
 #pragma once
 
-#include "matrixio.h"
+#include "cvInterface.h"
 
 void readLabPixel(Mat& image, double& L, double& a, double& b, int row, int col)
 {

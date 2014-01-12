@@ -1,8 +1,8 @@
 #include "stl.h"
 #include "cv.h"
+#include "cvInterface.h"
 #include "valarray2d.h"
 #include "ABW.h"
-#include "matrixio.h"
 
 #define DRAW_OUTPUT
 // #define WRITE_OUTPUT
