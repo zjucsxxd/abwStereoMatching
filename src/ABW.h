@@ -22,7 +22,7 @@ public:
 	{
 		initialize_borders();
 	}
-	ABW(int centerPixelX, int centerPixelY, int windowSize) :
+	ABW(int centerPixelX, int centerPixelY, unsigned int windowSize) :
 		matrix{ windowSize, windowSize }, _posx{ centerPixelX }, _posy{ centerPixelY }
 	{
 		initialize_borders();
