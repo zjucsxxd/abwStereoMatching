@@ -20,7 +20,7 @@ int main(int argc, char** argv)
 	const unsigned int width2{ static_cast<unsigned int>(image2.cols) };
 	const unsigned int height2{ static_cast<unsigned int>(image2.rows) };
 
-	// CIELab conversion
+	// convert to CIELab
 	Mat image1_lab{};
 	Mat image2_lab{};
 	cvtColor(image1, image1_lab, CV_RGB2Lab);
@@ -28,8 +28,6 @@ int main(int argc, char** argv)
 
 	// parameters
 	const double threshold{ 8.0 };
-
-	// bucketSize must be even
 #ifdef DRAW_OUTPUT
 	const unsigned int bucketSize{ 256 };
 #else
@@ -48,26 +46,32 @@ int main(int argc, char** argv)
 		for (unsigned int col{ 0 }; col < 640; col++)
 		{
 #endif
-			// bucket construction
+			// determine ABW shape
+			
+			// construct ABW bucket
 			bucket <double> testWindow{ row, col, bucketSize };
 
+			// crop bucket
+			if (testWindow.get_x1() < 0) { testWindow.set_x1(0); }
+			if (testWindow.get_y1() < 0) { testWindow.set_y1(0); }
+			if (testWindow.get_x2() > width1) { testWindow.set_x2(width1); }
+			if (testWindow.get_y2() > height1) { testWindow.set_y2(height1); }
+
+			int leftBorder{ testWindow.get_x1() };
+			int topBorder{ testWindow.get_y1() };
+			int rightBorder{ testWindow.get_x2() };
+			int bottomBorder{ testWindow.get_y2() };
+
+			int rl{ leftBorder }; // temporary
+			int rt{ topBorder }; // temporary
+
+			// evaluate center bucket pixel
 			double Lp{};
 			double ap{};
 			double bp{};
-
-			// ABW shape determination
 			readLabPixel(image1_lab, Lp, ap, bp, row, col);
 
-			int x1{ testWindow.get_x1() };
-			int y1{ testWindow.get_y1() };
-			int x2{ testWindow.get_x2() };
-			int y2{ testWindow.get_y2() };
-
-			if (x1 < 0) { x1 = 0; }
-			if (y1 < 0) { y1 = 0; }
-			if (x2 > width1) { x2 = width1; }
-			if (y2 > height1) { y2 = height1; }
-
+			// prepare variables for other bucket pixels
 			double Lq{};
 			double aq{};
 			double bq{};
@@ -78,19 +82,22 @@ int main(int argc, char** argv)
 #ifdef DRAW_OUTPUT
 			Mat image1_copy{ image1.clone() };
 #endif
-			for (int k{ x1 }; k < x2; k++)
+			while (leftBorder < rightBorder)
 			{
-				for (int l{ y1 }; l < y2; l++)
+				topBorder = rt;
+				while (topBorder < bottomBorder)
 				{
-					readLabPixel(image1_lab, Lq, aq, bq, l, k);
+					readLabPixel(image1_lab, Lq, aq, bq, topBorder, leftBorder);
 					distance(dpq, Lp, Lq, ap, aq, bp, bq);
-					if (dpq < threshold) { testWindow.set_value(k - x1, l - y1, 255); }
+					if (dpq < threshold) { testWindow.set_value(leftBorder - rl, topBorder - rt, 255); }
 #ifdef DRAW_OUTPUT
-					image1_copy.at<Vec3b>(l, k).val[0] = testWindow.get_value(k - x1, l - y1);
-					image1_copy.at<Vec3b>(l, k).val[1] = testWindow.get_value(k - x1, l - y1);
-					image1_copy.at<Vec3b>(l, k).val[2] = testWindow.get_value(k - x1, l - y1);
+					image1_copy.at<Vec3b>(topBorder, leftBorder).val[0] = testWindow.get_value(leftBorder - rl, topBorder - rt);
+					image1_copy.at<Vec3b>(topBorder, leftBorder).val[1] = testWindow.get_value(leftBorder - rl, topBorder - rt);
+					image1_copy.at<Vec3b>(topBorder, leftBorder).val[2] = testWindow.get_value(leftBorder - rl, topBorder - rt);
 #endif
+					topBorder++;
 				}
+				leftBorder++;
 			}
 #ifdef DRAW_OUTPUT
 			imshow("Output", image1_copy);
