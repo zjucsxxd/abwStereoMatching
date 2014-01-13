@@ -40,9 +40,9 @@ public:
 	void set_posx(unsigned int column) { this->_posx = column; };
 	void set_posy(unsigned int row) { this->_posy = row; };
 	void set_x1(int value) { this->_x1 = value; }
-	void set_y1(int value) { this->_x1 = value; }
-	void set_x2(int value) { this->_x1 = value; }
-	void set_y2(int value) { this->_x1 = value; }
+	void set_y1(int value) { this->_y1 = value; }
+	void set_x2(int value) { this->_x2 = value; }
+	void set_y2(int value) { this->_y2 = value; }
 
 	void initialize_borders();
 };
