@@ -1,5 +1,7 @@
-Real-time Stereo Matching using Adaptive Binary Window
-------------------------------------------------------
+Real-time Stereo Matching
+=========================
+using Adaptive Binary Window
+----------------------------
 
 The goal of this project is to provide an implementation for generating depth maps in real-time, as outlined in this paper:
 
@@ -9,4 +11,9 @@ Parts of OpenCV 2.4.8 are currently used for image file I/O. They are pre-built 
 
 The end result should output depth maps of acceptable quality, in real-time, from data aquired by a pair of consumer-grade USB cameras.
 
-The Visual Studio files are compatible with Visual Studio 2013.
+The Visual Studio files are compatible with Visual Studio 2013, just remember to add the command arguments under **Project** -> **Properties** -> **Configuration Properties** -> **Debugging**.
+
+To use the images provided in the repository, input:
+
+	$(SolutionDir)\shared\middlebury2005_art_illum1_exp1_view0.png
+	$(SolutionDir)\shared\middlebury2005_art_illum1_exp1_view1.png
