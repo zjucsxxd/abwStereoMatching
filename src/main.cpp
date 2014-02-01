@@ -3,11 +3,15 @@
 #include "cvInterface.h"
 #include "valarray2d.h"
 #include "bucket.h"
+#include <time.h>
 
 void distance(double& dpq, int& Lp, int& Lq, int& ap, int& aq, int& bp, int& bq);
 
 int main(int argc, char** argv)
 {
+
+	// begin timing
+	clock_t begin{ clock() };
 
 	// input
 	Mat image1{ imread(argv[1]) };
@@ -21,8 +25,9 @@ int main(int argc, char** argv)
 	cvtColor(image1, image1_lab, CV_RGB2Lab);
 	cvtColor(image2, image2_lab, CV_RGB2Lab);
 
-	// create what will be shown in the "Output" window
-	Mat image_copy{ image1.clone() };
+	// output
+	Mat output{ image1.clone() };
+	output = cv::Scalar(0);
 
 	// parameters
 	const int bucketSize{ 24 }; // use even positive value
@@ -129,9 +134,9 @@ int main(int argc, char** argv)
 			{
 				if (count[index] == maximum)
 				{
-					image_copy.at<Vec3b>(row, col).val[0] = index * 255 / (disparityRange + 1);
-					image_copy.at<Vec3b>(row, col).val[1] = index * 255 / (disparityRange + 1);
-					image_copy.at<Vec3b>(row, col).val[2] = index * 255 / (disparityRange + 1);
+					output.at<Vec3b>(row, col).val[0] = (disparityRange - index) * 255 / (disparityRange + 1);
+					output.at<Vec3b>(row, col).val[1] = (disparityRange - index) * 255 / (disparityRange + 1);
+					output.at<Vec3b>(row, col).val[2] = (disparityRange - index) * 255 / (disparityRange + 1);
 					break;
 				}
 			}
@@ -141,7 +146,18 @@ int main(int argc, char** argv)
 	// write output file
 	stringstream filename{};
 	filename << "disp" << "_b" << bucketSize << "_at" << adaptiveThreshold << "_mt" << matchThreshold << "_dr" << disparityRange << ".png";
-	imwrite(filename.str().c_str(), image_copy);
+	imwrite(filename.str().c_str(), output);
+
+	// end timing
+	clock_t end{ clock() };
+
+	// write time
+	double time_spent{};
+	time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
+	std::cout << time_spent << endl;
+
+	// wait for user key
+	std::cin.get();
 
 	return 0;
 }
