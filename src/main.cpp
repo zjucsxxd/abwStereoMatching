@@ -26,33 +26,34 @@ int main(int argc, char** argv)
 
 	// parameters
 	const double adaptiveThreshold{ 8.0 };
-	const unsigned int bucketSize{ 16 };
+	const int bucketSize{ 16 }; // use even positive value
+	const int disparityRange{ 20 };
 
 	// for each pixel of image1
-	for (unsigned int row{ 200 }; row < 800; row++)
+	for (unsigned int row{ bucketSize / 2 }; row < height - bucketSize / 2; row++)
 	{
-		for (unsigned int col{ 650 }; col < 1250; col++)
+		for (unsigned int col{ bucketSize / 2 + disparityRange }; col < width - bucketSize / 2; col++)
 		{
 			// determine ABW shape
 
 			// construct ABW bucket
-			bucket <double> activeMatchingWindow{ row, col, bucketSize };
+			// bucket <double> activeMatchingWindow{ row, col, bucketSize };
 
 			// crop bucket
 
-			if (activeMatchingWindow.get_x1() < 0) { activeMatchingWindow.set_x1(0); }
-			if (activeMatchingWindow.get_y1() < 0) { activeMatchingWindow.set_y1(0); }
-			if (activeMatchingWindow.get_y2() > height) { activeMatchingWindow.set_y2(height); }
-			if (activeMatchingWindow.get_x2() > width) { activeMatchingWindow.set_x2(width); }
+			// if (activeMatchingWindow.get_x1() < 0) { activeMatchingWindow.set_x1(0); }
+			// if (activeMatchingWindow.get_y1() < 0) { activeMatchingWindow.set_y1(0); }
+			// if (activeMatchingWindow.get_y2() > height) { activeMatchingWindow.set_y2(height); }
+			// if (activeMatchingWindow.get_x2() > width) { activeMatchingWindow.set_x2(width); }
 
-			int topBorder{ activeMatchingWindow.get_y1() }; 
-			int leftBorder{ activeMatchingWindow.get_x1() };
-			int bottomBorder{ activeMatchingWindow.get_y2() };
-			int rightBorder{ activeMatchingWindow.get_x2() };
+			// int topBorder{ activeMatchingWindow.get_y1() }; 
+			// int leftBorder{ activeMatchingWindow.get_x1() };
+			// int bottomBorder{ activeMatchingWindow.get_y2() };
+			// int rightBorder{ activeMatchingWindow.get_x2() };
 
 			// store initial border coordinates
-			int rememberLeft{ leftBorder };
-			int rememberTop{ topBorder };
+			// int rememberLeft{ leftBorder };
+			// int rememberTop{ topBorder };
 
 			// evaluate center bucket pixel Lab values
 			double Lp{};
@@ -68,46 +69,43 @@ int main(int argc, char** argv)
 			double dpq{};
 
 			// store matched pixel coordinates
-			std::vector<int> positivesY{};
-			std::vector<int> positivesX{};
+			std::vector<unsigned int> positivesY{};
+			std::vector<unsigned int> positivesX{};
 
 			// for each pixel of bucket
-			while (leftBorder < rightBorder)
+			for (int m = -bucketSize / 2; m < bucketSize / 2; m++)
 			{
-				while (topBorder < bottomBorder)
+				for (int n{ -bucketSize / 2 }; n < bucketSize / 2; n++)
 				{
-					readLabPixel(image1_lab, Lq, aq, bq, topBorder, leftBorder);
+					readLabPixel(image1_lab, Lq, aq, bq, row + m, col + n);
 					distance(dpq, Lp, Lq, ap, aq, bp, bq);
 					if (dpq < adaptiveThreshold)
 					{
-						activeMatchingWindow.set_value(leftBorder - rememberLeft, topBorder - rememberTop, 255);
-						positivesY.push_back(topBorder);
-						positivesX.push_back(leftBorder);
+						positivesY.push_back(row + m);
+						positivesX.push_back(col + n);
 					}
-					topBorder++;
 				}
-				leftBorder++;
 			}
 
 			// block matching
 
 			// parameters
-			int maxDisparity{ 20 }; // maximum disparity search range
+
 			const double matchThreshold{ 64.0 };
 			std::valarray<int> count{}; // store number of matches for given disparity
-			count.resize(maxDisparity * 2 + 1, 0);
+			count.resize(disparityRange + 1, 0);
 
 			int positives = positivesX.size(); // number of positives for given window
 
 			int activeIndex{ -1 };
 
-			for (int currentDisparity{ -maxDisparity }; currentDisparity < maxDisparity; currentDisparity++)
+			for (int currentDisparity{ -disparityRange }; currentDisparity <= 0; currentDisparity++)
 			{
 				activeIndex++;
 				for (int activePixels{ 0 }; activePixels < positives; activePixels++)
 				{
 					readLabPixel(image1_lab, Lp, ap, bp, positivesY[activePixels], positivesX[activePixels]);
-					readLabPixel(image2_lab, Lq, aq, bq, positivesY[activePixels] + currentDisparity, positivesX[activePixels] + currentDisparity);
+					readLabPixel(image2_lab, Lq, aq, bq, positivesY[activePixels], positivesX[activePixels] + currentDisparity);
 					distance(dpq, Lp, Lq, ap, aq, bp, bq);
 					if (dpq < matchThreshold)
 					{
@@ -124,9 +122,9 @@ int main(int argc, char** argv)
 			{
 				if (count[index] == maximum)
 				{
-					image_copy.at<Vec3b>(row, col).val[0] = index * 255 / 41;
-					image_copy.at<Vec3b>(row, col).val[1] = index * 255 / 41;
-					image_copy.at<Vec3b>(row, col).val[2] = index * 255 / 41;
+					image_copy.at<Vec3b>(row, col).val[0] = index * 255 / (disparityRange + 1);
+					image_copy.at<Vec3b>(row, col).val[1] = index * 255 / (disparityRange + 1);
+					image_copy.at<Vec3b>(row, col).val[2] = index * 255 / (disparityRange + 1);
 					break;
 				}
 			}
