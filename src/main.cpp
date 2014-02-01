@@ -1,5 +1,5 @@
 #include "stl.h"
-#include "cv.h"
+#include "cvHeaders.h"
 #include "cvInterface.h"
 #include "valarray2d.h"
 #include "bucket.h"
