@@ -4,7 +4,7 @@
 #include "valarray2d.h"
 #include "bucket.h"
 
-void distance(double& dpq, double& Lp, double& Lq, double& ap, double& aq, double& bp, double& bq);
+void distance(double& dpq, int& Lp, int& Lq, int& ap, int& aq, int& bp, int& bq);
 
 int main(int argc, char** argv)
 {
@@ -56,15 +56,18 @@ int main(int argc, char** argv)
 			// int rememberTop{ topBorder };
 
 			// evaluate center bucket pixel Lab values
-			double Lp{};
-			double ap{};
-			double bp{};
-			readLabPixel(image1_lab, Lp, ap, bp, row, col);
+			int Lp{};
+			int ap{};
+			int bp{};
+
+			Lp = image1_lab.at<Vec3b>(row, col).val[0];
+			ap = image1_lab.at<Vec3b>(row, col).val[1];
+			bp = image1_lab.at<Vec3b>(row, col).val[2];
 
 			// prepare variables for other bucket pixels
-			double Lq{};
-			double aq{};
-			double bq{};
+			int Lq{};
+			int aq{};
+			int bq{};
 
 			double dpq{};
 
@@ -77,7 +80,9 @@ int main(int argc, char** argv)
 			{
 				for (int n{ -bucketSize / 2 }; n < bucketSize / 2; n++)
 				{
-					readLabPixel(image1_lab, Lq, aq, bq, row + m, col + n);
+					Lq = image1_lab.at<Vec3b>(row + m, col + n).val[0];
+					aq = image1_lab.at<Vec3b>(row + m, col + n).val[1];
+					bq = image1_lab.at<Vec3b>(row + m, col + n).val[2];
 					distance(dpq, Lp, Lq, ap, aq, bp, bq);
 					if (dpq < adaptiveThreshold)
 					{
@@ -104,8 +109,12 @@ int main(int argc, char** argv)
 				activeIndex++;
 				for (int activePixels{ 0 }; activePixels < positives; activePixels++)
 				{
-					readLabPixel(image1_lab, Lp, ap, bp, positivesY[activePixels], positivesX[activePixels]);
-					readLabPixel(image2_lab, Lq, aq, bq, positivesY[activePixels], positivesX[activePixels] + currentDisparity);
+					Lp = image1_lab.at<Vec3b>(positivesY[activePixels], positivesX[activePixels]).val[0];
+					ap = image1_lab.at<Vec3b>(positivesY[activePixels], positivesX[activePixels]).val[1];
+					bp = image1_lab.at<Vec3b>(positivesY[activePixels], positivesX[activePixels]).val[2];
+					Lq = image2_lab.at<Vec3b>(positivesY[activePixels], positivesX[activePixels] + currentDisparity).val[0];
+					aq = image2_lab.at<Vec3b>(positivesY[activePixels], positivesX[activePixels] + currentDisparity).val[1];
+					bq = image2_lab.at<Vec3b>(positivesY[activePixels], positivesX[activePixels] + currentDisparity).val[2];
 					distance(dpq, Lp, Lq, ap, aq, bp, bq);
 					if (dpq < matchThreshold)
 					{
@@ -136,7 +145,7 @@ int main(int argc, char** argv)
 	return 0;
 }
 
-void distance(double& dpq, double& Lp, double& Lq, double& ap, double& aq, double& bp, double& bq)
+void distance(double& dpq, int& Lp, int& Lq, int& ap, int& aq, int& bp, int& bq)
 {
 	dpq = 0;
 	dpq += pow((Lp - Lq), 2);
