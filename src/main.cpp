@@ -25,9 +25,10 @@ int main(int argc, char** argv)
 	Mat image_copy{ image1.clone() };
 
 	// parameters
-	const double adaptiveThreshold{ 8.0 };
-	const int bucketSize{ 16 }; // use even positive value
-	const int disparityRange{ 20 };
+	const int bucketSize{ 24 }; // use even positive value
+	const int adaptiveThreshold{ 32 };
+	const int matchThreshold{ 8 };
+	const int disparityRange{ 40 };
 
 	// for each pixel of image1
 	for (unsigned int row{ bucketSize / 2 }; row < height - bucketSize / 2; row++)
@@ -94,9 +95,6 @@ int main(int argc, char** argv)
 
 			// block matching
 
-			// parameters
-
-			const double matchThreshold{ 64.0 };
 			std::valarray<int> count{}; // store number of matches for given disparity
 			count.resize(disparityRange + 1, 0);
 
@@ -140,16 +138,24 @@ int main(int argc, char** argv)
 		}
 	}
 
-	imwrite("disp.png", image_copy);
+	// write output file
+	stringstream filename{};
+	filename << "disp" << "_b" << bucketSize << "_at" << adaptiveThreshold << "_mt" << matchThreshold << "_dr" << disparityRange << ".png";
+	imwrite(filename.str().c_str(), image_copy);
 
 	return 0;
 }
 
 void distance(double& dpq, int& Lp, int& Lq, int& ap, int& aq, int& bp, int& bq)
 {
+	const int dL{ Lp - Lq };
+	const int da{ ap - aq };
+	const int db{ bp - bq }; 
+	
 	dpq = 0;
-	dpq += pow((Lp - Lq), 2);
-	dpq += pow((ap - aq), 2);
-	dpq += pow((bp - bq), 2);
+
+	dpq += dL * dL;
+	dpq += da * da;
+	dpq += db * db;
 	dpq = sqrt(dpq);
 }
