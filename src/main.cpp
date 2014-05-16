@@ -1,96 +1,66 @@
-#include "stl.h"
-#include "cvHeaders.h"
-#include "cvInterface.h"
-#include "valarray2d.h"
-#include "bucket.h"
+#include <iostream>
+#include <vector>
+#include <valarray>
+
 #include <time.h>
 
-void distance(double& dpq, int& Lp, int& Lq, int& ap, int& aq, int& bp, int& bq);
+#include <opencv2\opencv.hpp>
 
-int main(int argc, char** argv)
+#define KERNEL_SIZE 25
+#define DISPARITY_RANGE 40
+#define ADAPTIVE_THRESHOLD 32
+#define MATCHING_THRESHOLD 8
+
+// float get_euclidean_distance(int a, int b);
+float get_euclidean_distance(int a1, int b1, int c1, int a2, int b2, int c2);
+
+int main(int arc, char** argv)
 {
+	clock_t begin = clock();
 
-	// begin timing
-	clock_t begin{ clock() };
+	// setup
+	cv::Mat image1 = cv::imread(argv[1], 1); // 0 flag loads as grayscale
+	cvtColor(image1, image1, CV_BGR2Lab, 1);
+	//cv::resize(image1, image1, cv::Size(), 0.5f, 0.5f, CV_INTER_LINEAR);
 
-	// input
-	Mat image1{ imread(argv[1]) };
-	Mat image2{ imread(argv[2]) };
-	const unsigned int width{ static_cast<unsigned int>(image1.cols) };
-	const unsigned int height{ static_cast<unsigned int>(image1.rows) };
+	cv::Mat image2 = cv::imread(argv[2], 1);
+	cvtColor(image2, image2, CV_BGR2Lab);
+	//cv::resize(image2, image2, cv::Size(), 0.5f, 0.5f, CV_INTER_LINEAR);
+	
+	const unsigned int width = image1.cols;
+	const unsigned int height = image1.rows;
 
-	// convert to CIELab
-	Mat image1_lab{};
-	Mat image2_lab{};
-	cvtColor(image1, image1_lab, CV_RGB2Lab);
-	cvtColor(image2, image2_lab, CV_RGB2Lab);
-
-	// output
-	Mat output{ image1.clone() };
+	cv::Mat output = image1.clone();
 	output = cv::Scalar(0);
 
-	// parameters
-	const int bucketSize{ 24 }; // use even positive value
-	const int adaptiveThreshold{ 32 };
-	const int matchThreshold{ 8 };
-	const int disparityRange{ 40 };
+	// int pValue, qValue;
+	int Lp, ap, bp, Lq, aq,bq;
+	float difference;
 
-	// for each pixel of image1
-	for (unsigned int row{ bucketSize / 2 }; row < height - bucketSize / 2; row++)
+	// for each pixel inside the matching region
+	for (unsigned int row = (KERNEL_SIZE >> 1) + 1; row < height - (KERNEL_SIZE >> 1) + 1; ++row)
 	{
-		for (unsigned int col{ bucketSize / 2 + disparityRange }; col < width - bucketSize / 2; col++)
+		for (unsigned int col = (KERNEL_SIZE >> 1) + DISPARITY_RANGE; col < width - (KERNEL_SIZE >> 1) + 1; ++col)
 		{
-			// determine ABW shape
-
-			// construct ABW bucket
-			// bucket <double> activeMatchingWindow{ row, col, bucketSize };
-
-			// crop bucket
-
-			// if (activeMatchingWindow.get_x1() < 0) { activeMatchingWindow.set_x1(0); }
-			// if (activeMatchingWindow.get_y1() < 0) { activeMatchingWindow.set_y1(0); }
-			// if (activeMatchingWindow.get_y2() > height) { activeMatchingWindow.set_y2(height); }
-			// if (activeMatchingWindow.get_x2() > width) { activeMatchingWindow.set_x2(width); }
-
-			// int topBorder{ activeMatchingWindow.get_y1() }; 
-			// int leftBorder{ activeMatchingWindow.get_x1() };
-			// int bottomBorder{ activeMatchingWindow.get_y2() };
-			// int rightBorder{ activeMatchingWindow.get_x2() };
-
-			// store initial border coordinates
-			// int rememberLeft{ leftBorder };
-			// int rememberTop{ topBorder };
-
-			// evaluate center bucket pixel Lab values
-			int Lp{};
-			int ap{};
-			int bp{};
-
-			Lp = image1_lab.at<Vec3b>(row, col).val[0];
-			ap = image1_lab.at<Vec3b>(row, col).val[1];
-			bp = image1_lab.at<Vec3b>(row, col).val[2];
-
-			// prepare variables for other bucket pixels
-			int Lq{};
-			int aq{};
-			int bq{};
-
-			double dpq{};
-
-			// store matched pixel coordinates
-			std::vector<unsigned int> positivesY{};
-			std::vector<unsigned int> positivesX{};
+			Lp = image1.at<cv::Vec3b>(row, col).val[0];
+			ap = image1.at<cv::Vec3b>(row, col).val[1];
+			bp = image1.at<cv::Vec3b>(row, col).val[2];
+			
+			std::vector<unsigned int> positivesY, positivesX; // containers for adaptive pixel coordinates
 
 			// for each pixel of bucket
-			for (int m = -bucketSize / 2; m < bucketSize / 2; m++)
+			for (int m = -(KERNEL_SIZE >> 1); m < KERNEL_SIZE >> 1; ++m) // ++m
 			{
-				for (int n{ -bucketSize / 2 }; n < bucketSize / 2; n++)
+				for (int n = -(KERNEL_SIZE >> 1); n < KERNEL_SIZE >> 1; ++n) // ++n
 				{
-					Lq = image1_lab.at<Vec3b>(row + m, col + n).val[0];
-					aq = image1_lab.at<Vec3b>(row + m, col + n).val[1];
-					bq = image1_lab.at<Vec3b>(row + m, col + n).val[2];
-					distance(dpq, Lp, Lq, ap, aq, bp, bq);
-					if (dpq < adaptiveThreshold)
+					// qValue = image1.at<uchar>(row + m, col + n);
+					Lq = image1.at<cv::Vec3b>(row + m, col + n).val[0];
+					aq = image1.at<cv::Vec3b>(row + m, col + n).val[1];
+					bq = image1.at<cv::Vec3b>(row + m, col + n).val[2];
+
+					// difference = get_euclidean_distance(pValue, qValue);
+					difference = get_euclidean_distance(Lp, ap, bp, Lq, aq, bq);
+					if (difference < ADAPTIVE_THRESHOLD)
 					{
 						positivesY.push_back(row + m);
 						positivesX.push_back(col + n);
@@ -98,80 +68,84 @@ int main(int argc, char** argv)
 				}
 			}
 
-			// block matching
+			std::valarray<unsigned int> C; // number of matches for given disparity
+			C.resize(DISPARITY_RANGE + 1, 0);
 
-			std::valarray<int> count{}; // store number of matches for given disparity
-			count.resize(disparityRange + 1, 0);
+			unsigned int numberOfPositives = static_cast<unsigned int>(positivesX.size());
 
-			int positives = positivesX.size(); // number of positives for given window
+			// TODO: bezveze
+			int activeIndex = -1;
 
-			int activeIndex{ -1 };
-
-			for (int currentDisparity{ -disparityRange }; currentDisparity <= 0; currentDisparity++)
+			// matching
+			for (int disparity = -DISPARITY_RANGE; disparity < 0; ++disparity)
 			{
-				activeIndex++;
-				for (int activePixels{ 0 }; activePixels < positives; activePixels++)
+				++activeIndex;
+				for (unsigned int pixel = 0; pixel < numberOfPositives; ++pixel)
 				{
-					Lp = image1_lab.at<Vec3b>(positivesY[activePixels], positivesX[activePixels]).val[0];
-					ap = image1_lab.at<Vec3b>(positivesY[activePixels], positivesX[activePixels]).val[1];
-					bp = image1_lab.at<Vec3b>(positivesY[activePixels], positivesX[activePixels]).val[2];
-					Lq = image2_lab.at<Vec3b>(positivesY[activePixels], positivesX[activePixels] + currentDisparity).val[0];
-					aq = image2_lab.at<Vec3b>(positivesY[activePixels], positivesX[activePixels] + currentDisparity).val[1];
-					bq = image2_lab.at<Vec3b>(positivesY[activePixels], positivesX[activePixels] + currentDisparity).val[2];
-					distance(dpq, Lp, Lq, ap, aq, bp, bq);
-					if (dpq < matchThreshold)
+					// pValue = image1.at<uchar>(positivesY[pixel], positivesX[pixel]);
+					// qValue = image2.at<uchar>(positivesY[pixel], positivesX[pixel] + disparity);
+					Lp = image1.at<cv::Vec3b>(positivesY[pixel], positivesX[pixel]).val[0];
+					ap = image1.at<cv::Vec3b>(positivesY[pixel], positivesX[pixel]).val[1];
+					bp = image1.at<cv::Vec3b>(positivesY[pixel], positivesX[pixel]).val[2];
+					Lq = image2.at<cv::Vec3b>(positivesY[pixel], positivesX[pixel] + disparity).val[0];
+					aq = image2.at<cv::Vec3b>(positivesY[pixel], positivesX[pixel] + disparity).val[1];
+					bq = image2.at<cv::Vec3b>(positivesY[pixel], positivesX[pixel] + disparity).val[2];
+					// difference = get_euclidean_distance(pValue, qValue);
+					difference = get_euclidean_distance(Lp, ap, bp, Lq, aq, bq);
+					if (difference < MATCHING_THRESHOLD)
 					{
-						count[activeIndex] = count[activeIndex] + 1;
+						C[activeIndex] = C[activeIndex] + 1;
 					}
 				}
 			}
 
-			// TODO: determine if maximum is unique (ambiguity)
-			int maximum{ count.max() };
+			// TODO: remove maximum ambiguity
+			unsigned int maximum = C.max();
 
 			// TODO: find index of maximum (avoid for loop)
-			for (int index{ 0 }; index < count.size(); index++)
+			for (unsigned int index = 0; index < C.size(); ++index)
 			{
-				if (count[index] == maximum)
+				if (C[index] == maximum)
 				{
-					output.at<Vec3b>(row, col).val[0] = (disparityRange - index) * 255 / (disparityRange + 1);
-					output.at<Vec3b>(row, col).val[1] = (disparityRange - index) * 255 / (disparityRange + 1);
-					output.at<Vec3b>(row, col).val[2] = (disparityRange - index) * 255 / (disparityRange + 1);
+					// output.at<cv::Vec3b>(row, col) = (DISPARITY_RANGE - index) * 255 / (DISPARITY_RANGE + 1); }
+					output.at<cv::Vec3b>(row, col).val[0] = (DISPARITY_RANGE - index) * 255 / (DISPARITY_RANGE + 1);
+					output.at<cv::Vec3b>(row, col).val[1] = (DISPARITY_RANGE - index) * 255 / (DISPARITY_RANGE + 1);
+					output.at<cv::Vec3b>(row, col).val[2] = (DISPARITY_RANGE - index) * 255 / (DISPARITY_RANGE + 1);
 					break;
 				}
 			}
 		}
 	}
 
-	// write output file
-	stringstream filename{};
-	filename << "disp" << "_b" << bucketSize << "_at" << adaptiveThreshold << "_mt" << matchThreshold << "_dr" << disparityRange << ".png";
-	imwrite(filename.str().c_str(), output);
+	clock_t end = clock();
+	double time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
+	std::cout << time_spent << std::endl;
 
-	// end timing
-	clock_t end{ clock() };
-
-	// write time
-	double time_spent{};
-	time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
-	std::cout << time_spent << endl;
-
-	// wait for user key
-	std::cin.get();
-
+	// cv::resize(output, output, cv::Size(), 2.0f, 2.0f, CV_INTER_NN);
+	cv::imshow("Output", output);
+	cv::waitKey();
 	return 0;
 }
 
-void distance(double& dpq, int& Lp, int& Lq, int& ap, int& aq, int& bp, int& bq)
+/*float get_euclidean_distance(int a, int b)
 {
-	const int dL{ Lp - Lq };
-	const int da{ ap - aq };
-	const int db{ bp - bq }; 
-	
-	dpq = 0;
+	return static_cast<float>(abs(a - b));
+}*/
 
-	dpq += dL * dL;
-	dpq += da * da;
-	dpq += db * db;
-	dpq = sqrt(dpq);
+float get_euclidean_distance(int a1, int b1, int c1, int a2, int b2, int c2)
+{	
+	return abs(a1 - a2) + abs(b1 - b2) + abs(c1 - c2);
 }
+
+/*float get_euclidean_distance(int a1, int b1, int c1, int a2, int b2, int c2)
+{
+	float d;
+
+	int da = a1 - a2;
+	int db = b1 - b2;
+	int dc = c1 - c2;
+
+	d = da * da + db * db + dc * dc;
+	
+	return sqrt(d);
+}*/
