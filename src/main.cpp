@@ -4,7 +4,7 @@
 
 #include <time.h>
 
-#include <opencv2\opencv.hpp>
+#include <opencv2/opencv.hpp>
 
 #define KERNEL_SIZE 25
 #define DISPARITY_RANGE 40
