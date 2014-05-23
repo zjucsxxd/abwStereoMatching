@@ -4,12 +4,15 @@
 
 #include <time.h>
 
-#include <opencv2/opencv.hpp>
+#include <opencv2/core/core.hpp>
+#include <opencv2/highgui/highgui.hpp>
 
 #define KERNEL_SIZE 25
 #define DISPARITY_RANGE 40
 #define ADAPTIVE_THRESHOLD 32
 #define MATCHING_THRESHOLD 8
+
+typedef uint uint;
 
 // float get_euclidean_distance(int a, int b);
 float get_euclidean_distance(int a1, int b1, int c1, int a2, int b2, int c2);
@@ -27,8 +30,8 @@ int main(int arc, char** argv)
 	cvtColor(image2, image2, CV_BGR2Lab);
 	//cv::resize(image2, image2, cv::Size(), 0.5f, 0.5f, CV_INTER_LINEAR);
 	
-	const unsigned int width = image1.cols;
-	const unsigned int height = image1.rows;
+	const uint width = image1.cols;
+	const uint height = image1.rows;
 
 	cv::Mat output = image1.clone();
 	output = cv::Scalar(0);
@@ -38,15 +41,15 @@ int main(int arc, char** argv)
 	float difference;
 
 	// for each pixel inside the matching region
-	for (unsigned int row = (KERNEL_SIZE >> 1) + 1; row < height - (KERNEL_SIZE >> 1) + 1; ++row)
+	for (uint row = (KERNEL_SIZE >> 1) + 1; row < height - (KERNEL_SIZE >> 1) + 1; ++row)
 	{
-		for (unsigned int col = (KERNEL_SIZE >> 1) + DISPARITY_RANGE; col < width - (KERNEL_SIZE >> 1) + 1; ++col)
+		for (uint col = (KERNEL_SIZE >> 1) + DISPARITY_RANGE; col < width - (KERNEL_SIZE >> 1) + 1; ++col)
 		{
 			Lp = image1.at<cv::Vec3b>(row, col).val[0];
 			ap = image1.at<cv::Vec3b>(row, col).val[1];
 			bp = image1.at<cv::Vec3b>(row, col).val[2];
 			
-			std::vector<unsigned int> positivesY, positivesX; // containers for adaptive pixel coordinates
+			std::vector<uint> positivesY, positivesX; // containers for adaptive pixel coordinates
 
 			// for each pixel of bucket
 			for (int m = -(KERNEL_SIZE >> 1); m < KERNEL_SIZE >> 1; ++m) // ++m
@@ -68,10 +71,10 @@ int main(int arc, char** argv)
 				}
 			}
 
-			std::valarray<unsigned int> C; // number of matches for given disparity
+			std::valarray<uint> C; // number of matches for given disparity
 			C.resize(DISPARITY_RANGE + 1, 0);
 
-			unsigned int numberOfPositives = static_cast<unsigned int>(positivesX.size());
+			uint numberOfPositives = static_cast<uint>(positivesX.size());
 
 			// TODO: bezveze
 			int activeIndex = -1;
@@ -80,7 +83,7 @@ int main(int arc, char** argv)
 			for (int disparity = -DISPARITY_RANGE; disparity < 0; ++disparity)
 			{
 				++activeIndex;
-				for (unsigned int pixel = 0; pixel < numberOfPositives; ++pixel)
+				for (uint pixel = 0; pixel < numberOfPositives; ++pixel)
 				{
 					// pValue = image1.at<uchar>(positivesY[pixel], positivesX[pixel]);
 					// qValue = image2.at<uchar>(positivesY[pixel], positivesX[pixel] + disparity);
@@ -100,10 +103,10 @@ int main(int arc, char** argv)
 			}
 
 			// TODO: remove maximum ambiguity
-			unsigned int maximum = C.max();
+			uint maximum = C.max();
 
 			// TODO: find index of maximum (avoid for loop)
-			for (unsigned int index = 0; index < C.size(); ++index)
+			for (uint index = 0; index < C.size(); ++index)
 			{
 				if (C[index] == maximum)
 				{
