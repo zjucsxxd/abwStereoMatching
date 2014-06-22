@@ -6,13 +6,14 @@
 
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
 
 #define KERNEL_SIZE 25
 #define DISPARITY_RANGE 40
 #define ADAPTIVE_THRESHOLD 32
 #define MATCHING_THRESHOLD 8
 
-typedef uint uint;
+typedef unsigned int uint;
 
 // float get_euclidean_distance(int a, int b);
 float get_euclidean_distance(int a1, int b1, int c1, int a2, int b2, int c2);
@@ -137,7 +138,7 @@ int main(int arc, char** argv)
 
 float get_euclidean_distance(int a1, int b1, int c1, int a2, int b2, int c2)
 {	
-	return abs(a1 - a2) + abs(b1 - b2) + abs(c1 - c2);
+	return static_cast<float>(abs(a1 - a2) + abs(b1 - b2) + abs(c1 - c2));
 }
 
 /*float get_euclidean_distance(int a1, int b1, int c1, int a2, int b2, int c2)
