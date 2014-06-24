@@ -1,7 +1,5 @@
 #include "stereo.hpp"
 
-#include <valarray>
-
 #define DISPARITY_RANGE 40
 #define ADAPTIVE_THRESHOLD 32
 #define MATCHING_THRESHOLD 8
@@ -27,8 +25,6 @@ cv::Mat generate_disparity_map(cv::Mat image1, cv::Mat image2)
 	uchar pValues[3];
 	uchar qValues[3];
 
-	cv::Mat::MStep step = image1.step; // image1 is arbitrary
-
 	float difference;
 
 	// for each pixel inside the matching region
@@ -36,9 +32,9 @@ cv::Mat generate_disparity_map(cv::Mat image1, cv::Mat image2)
 	{
 		for (uint col = (kernelSize / 2) + DISPARITY_RANGE; col < width - (kernelSize / 2) + 1; ++col)
 		{
-			pValues[0] = data1[step * row + col * 3 + 0];
-			pValues[1] = data1[step * row + col * 3 + 1];
-			pValues[2] = data1[step * row + col * 3 + 2];
+			pValues[0] = data1[image1.step * row + col * 3 + 0];
+			pValues[1] = data1[image1.step * row + col * 3 + 1];
+			pValues[2] = data1[image1.step * row + col * 3 + 2];
 
 			std::vector<uint> positivesY, positivesX; // containers for adaptive pixel coordinates
 
@@ -60,8 +56,7 @@ cv::Mat generate_disparity_map(cv::Mat image1, cv::Mat image2)
 				}
 			}
 
-			std::valarray<uint> C; // number of matches for given disparity
-			C.resize(DISPARITY_RANGE + 1, 0);
+			std::vector<uint> C(DISPARITY_RANGE + 1, 0); // number of matches for given disparity
 
 			uint numberOfPositives = static_cast<uint>(positivesX.size());
 
@@ -88,13 +83,17 @@ cv::Mat generate_disparity_map(cv::Mat image1, cv::Mat image2)
 				}
 			}
 
-			// TODO: remove maximum ambiguity
-			uint maximum = C.max();
+			uint maximum = *std::max_element(C.begin(), C.end());
+			int ambiguous = 0;
+			for (int a = 0; a < C.size(); ++a)
+			{
+				if (C[a] == maximum) { ambiguous += 1; }
+			}
 
 			// TODO: find index of maximum (avoid for loop)
 			for (uint index = 0; index < C.size(); ++index)
 			{
-				if (C[index] == maximum)
+				if (C[index] == maximum /*&& ambiguous == 1*/)
 				{
 					output.at<cv::Vec3b>(row, col).val[0] = (DISPARITY_RANGE - index) * 255 / (DISPARITY_RANGE + 1);
 					output.at<cv::Vec3b>(row, col).val[1] = (DISPARITY_RANGE - index) * 255 / (DISPARITY_RANGE + 1);
