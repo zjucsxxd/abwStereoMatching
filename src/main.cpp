@@ -25,12 +25,12 @@ int main(int arc, char** argv)
 	// setup
 	cv::Mat image1 = cv::imread(argv[1], 1); // 0 flag loads as grayscale
 	cvtColor(image1, image1, CV_BGR2Lab, 1);
-	//cv::resize(image1, image1, cv::Size(), 0.5f, 0.5f, CV_INTER_LINEAR);
+	cv::resize(image1, image1, cv::Size(), 0.5f, 0.5f, CV_INTER_LINEAR);
 
 	cv::Mat image2 = cv::imread(argv[2], 1);
 	cvtColor(image2, image2, CV_BGR2Lab);
-	//cv::resize(image2, image2, cv::Size(), 0.5f, 0.5f, CV_INTER_LINEAR);
-	
+	cv::resize(image2, image2, cv::Size(), 0.5f, 0.5f, CV_INTER_LINEAR);
+
 	const uint width = image1.cols;
 	const uint height = image1.rows;
 
@@ -49,7 +49,7 @@ int main(int arc, char** argv)
 			Lp = image1.at<cv::Vec3b>(row, col).val[0];
 			ap = image1.at<cv::Vec3b>(row, col).val[1];
 			bp = image1.at<cv::Vec3b>(row, col).val[2];
-			
+
 			std::vector<uint> positivesY, positivesX; // containers for adaptive pixel coordinates
 
 			// for each pixel of bucket
@@ -125,7 +125,7 @@ int main(int arc, char** argv)
 	double time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
 	std::cout << time_spent << std::endl;
 
-	// cv::resize(output, output, cv::Size(), 2.0f, 2.0f, CV_INTER_NN);
+	cv::resize(output, output, cv::Size(), 2.0f, 2.0f, CV_INTER_NN);
 	cv::imshow("Output", output);
 	cv::waitKey();
 	return 0;
@@ -137,7 +137,7 @@ int main(int arc, char** argv)
 }*/
 
 float get_euclidean_distance(int a1, int b1, int c1, int a2, int b2, int c2)
-{	
+{
 	return static_cast<float>(abs(a1 - a2) + abs(b1 - b2) + abs(c1 - c2));
 }
 
@@ -150,6 +150,6 @@ float get_euclidean_distance(int a1, int b1, int c1, int a2, int b2, int c2)
 	int dc = c1 - c2;
 
 	d = da * da + db * db + dc * dc;
-	
+
 	return sqrt(d);
 }*/
