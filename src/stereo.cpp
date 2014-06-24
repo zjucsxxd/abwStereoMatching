@@ -7,22 +7,28 @@
 #define MATCHING_THRESHOLD 8
 
 typedef unsigned int uint;
+typedef unsigned char uchar;
 
-cv::Mat generate_disparity_map(cv::Mat& image1, cv::Mat& image2)
+cv::Mat generate_disparity_map(cv::Mat image1, cv::Mat image2)
 {
 	int kernelSize = 25; // TODO: adaptive kernel size
 
 	preprocess(image1);
 	preprocess(image2);
 
-	cv::Mat output = image1.clone();
+	const uint height = static_cast<uint>(image1.rows);
+	const uint width  = static_cast<uint>(image1.cols); // image1 is arbitrary
+
+	cv::Mat output(height, width, CV_8UC3);
 	output = cv::Scalar(0);
 
-	const uint width = image1.cols;
-	const uint height = image1.rows;
+	uchar* data1 = image1.data;
+	uchar* data2 = image2.data;
+	uchar pValues[3];
+	uchar qValues[3];
 
-	// int pValue, qValue;
-	int Lp, ap, bp, Lq, aq,bq;
+	cv::Mat::MStep step = image1.step; // image1 is arbitrary
+
 	float difference;
 
 	// for each pixel inside the matching region
@@ -30,9 +36,9 @@ cv::Mat generate_disparity_map(cv::Mat& image1, cv::Mat& image2)
 	{
 		for (uint col = (kernelSize / 2) + DISPARITY_RANGE; col < width - (kernelSize / 2) + 1; ++col)
 		{
-			Lp = image1.at<cv::Vec3b>(row, col).val[0];
-			ap = image1.at<cv::Vec3b>(row, col).val[1];
-			bp = image1.at<cv::Vec3b>(row, col).val[2];
+			pValues[0] = data1[step * row + col * 3 + 0];
+			pValues[1] = data1[step * row + col * 3 + 1];
+			pValues[2] = data1[step * row + col * 3 + 2];
 
 			std::vector<uint> positivesY, positivesX; // containers for adaptive pixel coordinates
 
@@ -41,13 +47,11 @@ cv::Mat generate_disparity_map(cv::Mat& image1, cv::Mat& image2)
 			{
 				for (int n = -(kernelSize / 2); n < kernelSize / 2; ++n) // ++n
 				{
-					// qValue = image1.at<uchar>(row + m, col + n);
-					Lq = image1.at<cv::Vec3b>(row + m, col + n).val[0];
-					aq = image1.at<cv::Vec3b>(row + m, col + n).val[1];
-					bq = image1.at<cv::Vec3b>(row + m, col + n).val[2];
+					qValues[0] = data1[image1.step * (row + m) + (col + n) * 3 + 0];
+					qValues[1] = data1[image1.step * (row + m) + (col + n) * 3 + 1];
+					qValues[2] = data1[image1.step * (row + m) + (col + n) * 3 + 2];
 
-					// difference = get_euclidean_distance(pValue, qValue);
-					difference = get_euclidean_distance(Lp, ap, bp, Lq, aq, bq);
+					difference = get_euclidean_distance(pValues[0], pValues[1], pValues[2], qValues[0], qValues[1], qValues[2]);
 					if (difference < ADAPTIVE_THRESHOLD)
 					{
 						positivesY.push_back(row + m);
@@ -70,16 +74,13 @@ cv::Mat generate_disparity_map(cv::Mat& image1, cv::Mat& image2)
 				++activeIndex;
 				for (uint pixel = 0; pixel < numberOfPositives; ++pixel)
 				{
-					// pValue = image1.at<uchar>(positivesY[pixel], positivesX[pixel]);
-					// qValue = image2.at<uchar>(positivesY[pixel], positivesX[pixel] + disparity);
-					Lp = image1.at<cv::Vec3b>(positivesY[pixel], positivesX[pixel]).val[0];
-					ap = image1.at<cv::Vec3b>(positivesY[pixel], positivesX[pixel]).val[1];
-					bp = image1.at<cv::Vec3b>(positivesY[pixel], positivesX[pixel]).val[2];
-					Lq = image2.at<cv::Vec3b>(positivesY[pixel], positivesX[pixel] + disparity).val[0];
-					aq = image2.at<cv::Vec3b>(positivesY[pixel], positivesX[pixel] + disparity).val[1];
-					bq = image2.at<cv::Vec3b>(positivesY[pixel], positivesX[pixel] + disparity).val[2];
-					// difference = get_euclidean_distance(pValue, qValue);
-					difference = get_euclidean_distance(Lp, ap, bp, Lq, aq, bq);
+					pValues[0] = data1[image1.step * positivesY[pixel] + positivesX[pixel] * 3 + 0];
+					pValues[1] = data1[image1.step * positivesY[pixel] + positivesX[pixel] * 3 + 1];
+					pValues[2] = data1[image1.step * positivesY[pixel] + positivesX[pixel] * 3 + 2];
+					qValues[0] = data2[image2.step * positivesY[pixel] + (positivesX[pixel] + disparity) * 3 + 0];
+					qValues[1] = data2[image2.step * positivesY[pixel] + (positivesX[pixel] + disparity) * 3 + 1];
+					qValues[2] = data2[image2.step * positivesY[pixel] + (positivesX[pixel] + disparity) * 3 + 2];
+					difference = get_euclidean_distance(pValues[0], pValues[1], pValues[2], qValues[0], qValues[1], qValues[2]);
 					if (difference < MATCHING_THRESHOLD)
 					{
 						C[activeIndex] = C[activeIndex] + 1;
@@ -95,7 +96,6 @@ cv::Mat generate_disparity_map(cv::Mat& image1, cv::Mat& image2)
 			{
 				if (C[index] == maximum)
 				{
-					// output.at<cv::Vec3b>(row, col) = (DISPARITY_RANGE - index) * 255 / (DISPARITY_RANGE + 1); }
 					output.at<cv::Vec3b>(row, col).val[0] = (DISPARITY_RANGE - index) * 255 / (DISPARITY_RANGE + 1);
 					output.at<cv::Vec3b>(row, col).val[1] = (DISPARITY_RANGE - index) * 255 / (DISPARITY_RANGE + 1);
 					output.at<cv::Vec3b>(row, col).val[2] = (DISPARITY_RANGE - index) * 255 / (DISPARITY_RANGE + 1);
@@ -113,6 +113,11 @@ cv::Mat generate_disparity_map(cv::Mat& image1, cv::Mat& image2)
 float get_euclidean_distance(int a1, int b1, int c1, int a2, int b2, int c2)
 {
 	return static_cast<float>(abs(a1 - a2) + abs(b1 - b2) + abs(c1 - c2));
+}
+
+float get_euclidean_distance(uchar a, uchar b)
+{
+	return static_cast<float>(abs(a - b));
 }
 
 void preprocess(cv::Mat& image)

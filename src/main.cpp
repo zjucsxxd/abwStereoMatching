@@ -9,14 +9,15 @@
 
 #include "stereo.hpp"
 
-// float get_euclidean_distance(int a, int b);
-
 int main(int arc, char** argv)
 {
 	clock_t begin = clock();
 
 	cv::Mat left  = cv::imread(argv[1], 1);
 	cv::Mat right = cv::imread(argv[2], 1);
+
+	if (!left.isContinuous()){left = left.clone();}
+	if (!right.isContinuous()){right = right.clone();}
 
 	cv::Mat disparity = generate_disparity_map(left, right);
 	clock_t end = clock();
@@ -27,13 +28,6 @@ int main(int arc, char** argv)
 	cv::waitKey();
 	return 0;
 }
-
-/*float get_euclidean_distance(int a, int b)
-{
-return static_cast<float>(abs(a - b));
-}*/
-
-
 
 /*float get_euclidean_distance(int a1, int b1, int c1, int a2, int b2, int c2)
 {
