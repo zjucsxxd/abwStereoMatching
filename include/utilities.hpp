@@ -3,11 +3,6 @@
 
 #include <stdlib.h>
 
-int taxicab_dist(int Lp,
-				 int ap,
-				 int bp,
-				 int Lq,
-				 int aq,
-				 int bq);
+inline int taxicab_dist(const int a[3], const int b[3]) { return (abs(a[0] - b[0]) + abs(a[1] - b[1]) + abs(a[2] - b[2])); }
 
 #endif

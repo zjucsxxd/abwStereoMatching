@@ -1,17 +1,17 @@
 #include "stereo.hpp"
 #include "utilities.hpp"
 
-#define DISPARITY_RANGE 40
-#define ADAPTIVE_THRESHOLD 32
-#define MATCHING_THRESHOLD 8
-
 typedef unsigned int uint;
 typedef unsigned char uchar;
 
-cv::Mat generate_disparity_map(cv::Mat image1, cv::Mat image2)
-{
-	const int kernelSize = 25; // TODO: adaptive kernel size
+// TODO: +control, -global
+const int kernelSize = 25;
+const int disparityRange = 40;
+const int adaptiveThreshold = 32;
+const int matchingThreshold = 8;
 
+cv::Mat generate_disparity_map(cv::Mat& image1, cv::Mat& image2)
+{
 	preprocess(image1);
 	preprocess(image2);
 
@@ -28,7 +28,7 @@ cv::Mat generate_disparity_map(cv::Mat image1, cv::Mat image2)
 	// for each pixel inside the matching region
 	for (uint row = (kernelSize / 2) + 1; row < height - (kernelSize / 2) + 1; ++row)
 	{
-		for (uint col = (kernelSize / 2) + DISPARITY_RANGE; col < width - (kernelSize / 2) + 1; ++col)
+		for (uint col = (kernelSize / 2) + disparityRange; col < width - (kernelSize / 2) + 1; ++col)
 		{
 			output.at<uchar>(row, col) = get_pixel_disparity(data1, data2, step, row, col, kernelSize);
 		}
@@ -73,10 +73,7 @@ uchar get_pixel_disparity(uchar* data1, uchar* data2, cv::Mat::MStep step, int r
 			qValues[1] = data1[step * (row + m) + (col + n) * 3 + 1];
 			qValues[2] = data1[step * (row + m) + (col + n) * 3 + 2];
 
-			difference = (abs(pValues[0] - qValues[0]) + abs(pValues[1] - qValues[1]) + abs(pValues[2] - qValues[2]));
-			// difference = taxicab_dist(pValues[0], pValues[1], pValues[2], qValues[0], qValues[1], qValues[2]);
-
-			if (difference < ADAPTIVE_THRESHOLD)
+			if (taxicab_dist(pValues, qValues) < adaptiveThreshold)
 			{
 				positivesY.push_back(row + m);
 				positivesX.push_back(col + n);
@@ -84,7 +81,7 @@ uchar get_pixel_disparity(uchar* data1, uchar* data2, cv::Mat::MStep step, int r
 		}
 	}
 
-	std::vector<uint> C(DISPARITY_RANGE + 1, 0); // number of matches for given disparity
+	std::vector<uint> C(disparityRange + 1, 0); // number of matches for given disparity
 
 	uint numberOfPositives = static_cast<uint>(positivesX.size());
 
@@ -92,7 +89,7 @@ uchar get_pixel_disparity(uchar* data1, uchar* data2, cv::Mat::MStep step, int r
 	int activeIndex = -1;
 
 	// matching
-	for (int disparity = -DISPARITY_RANGE; disparity < 0; ++disparity)
+	for (int disparity = -disparityRange; disparity < 0; ++disparity)
 	{
 		++activeIndex;
 		for (uint pixel = 0; pixel < numberOfPositives; ++pixel)
@@ -104,10 +101,7 @@ uchar get_pixel_disparity(uchar* data1, uchar* data2, cv::Mat::MStep step, int r
 			qValues[1] = data2[step * positivesY[pixel] + (positivesX[pixel] + disparity) * 3 + 1];
 			qValues[2] = data2[step * positivesY[pixel] + (positivesX[pixel] + disparity) * 3 + 2];
 
-			difference = (abs(pValues[0] - qValues[0]) + abs(pValues[1] - qValues[1]) + abs(pValues[2] - qValues[2]));
-			// difference = taxicab_dist(pValues[0], pValues[1], pValues[2], qValues[0], qValues[1], qValues[2]);
-
-			if (difference < MATCHING_THRESHOLD)
+			if (taxicab_dist(pValues, qValues) < matchingThreshold)
 			{
 				C[activeIndex] = C[activeIndex] + 1;
 			}
@@ -126,7 +120,7 @@ uchar get_pixel_disparity(uchar* data1, uchar* data2, cv::Mat::MStep step, int r
 	{
 		if (C[index] == maximum /*&& ambiguous == 1*/)
 		{
-			return (DISPARITY_RANGE - index) * 255 / (DISPARITY_RANGE + 1);
+			return (disparityRange - index) * 255 / (disparityRange + 1);
 			break;
 		}
 	}
