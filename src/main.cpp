@@ -15,14 +15,16 @@ int main(int arc, char** argv)
 	cv::Mat left  = cv::imread(argv[1], 1);
 	cv::Mat right = cv::imread(argv[2], 1);
 
+	cv::imshow("Left", left);
+	cv::imshow("Right", right);
+
 	clock_t begin = clock();
 	cv::Mat disparity = generate_disparity_map(left, right);
 	clock_t end = clock();
 
 	echo_interval(begin, end);
 
-	cv::imshow("Input", left);
-	cv::imshow("Output", disparity);
+	cv::imshow("Disparity", disparity);
 	cv::waitKey();
 
 	return 0;

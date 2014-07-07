@@ -10,7 +10,7 @@ const int disparityRange = 20;
 const int adaptiveThreshold = 32;
 const int matchingThreshold = 8;
 
-cv::Mat generate_disparity_map(cv::Mat& image1, cv::Mat& image2)
+cv::Mat generate_disparity_map(cv::Mat image1, cv::Mat image2)
 {
 	preprocess(image1);
 	preprocess(image2);
@@ -26,11 +26,11 @@ cv::Mat generate_disparity_map(cv::Mat& image1, cv::Mat& image2)
 	cv::Mat::MStep step = image1.step;
 
 	// for each pixel inside the matching region
-	for (uint row = (kernelSize / 2) + 1; row < height - (kernelSize / 2) + 1; ++row)
+	for (int row = (kernelSize / 2) + 1; row < height - (kernelSize / 2) + 1; ++row)
 	{
-		for (uint col = (kernelSize / 2) + disparityRange; col < width - (kernelSize / 2) + 1; ++col)
+		for (int col = (kernelSize / 2) + disparityRange; col < width - (kernelSize / 2) + 1; ++col)
 		{
-			output.at<uchar>(row, col) = get_pixel_disparity(image1, image2, step, row, col, kernelSize);
+			output.at<uchar>(row, col) = get_pixel_disparity(image1, image2, step, row, col);
 		}
 	}
 
@@ -39,72 +39,31 @@ cv::Mat generate_disparity_map(cv::Mat& image1, cv::Mat& image2)
 	return output;
 }
 
-void preprocess(cv::Mat& image)
+uchar get_pixel_disparity(cv::Mat& image1, cv::Mat& image2, cv::Mat::MStep step, int row, int col)
 {
-	cvtColor(image, image, CV_BGR2Lab, 1);
-	cv::resize(image, image, cv::Size(), 0.5f, 0.5f, CV_INTER_LINEAR);
-}
+	uchar pValues[3];
+	uchar qValues[3];
 
-void postprocess(cv::Mat& image)
-{
-	cv::resize(image, image, cv::Size(), 2.0f, 2.0f, CV_INTER_NN);
-}
+	// containers for adaptive pixel coordinates
+	std::vector<uint> positivesY, positivesX;
+	// TODO: determine average number of abw pixels
+	int reserveApprox = kernelSize * kernelSize / 2;
+	positivesY.reserve(reserveApprox);
+	positivesX.reserve(reserveApprox);
 
-uchar get_pixel_disparity(cv::Mat& image1, cv::Mat& image2, cv::Mat::MStep step, int row, int col, const int& kernelSize)
-{
-	int pValues[3];
-	int qValues[3];
+	uchar* data1;
+	uchar* data2;
 
-	std::vector<uint> positivesY, positivesX; // containers for adaptive pixel coordinates
+	data1 = image1.ptr<uchar>(row) + (col * 3);
+	pValues[0] = *data1++;
+	pValues[1] = *data1++;
+	pValues[2] = *data1++;
 
-	uchar* data1 = image1.data;
-	uchar* data2 = image2.data;
-
-	// get_abw_coords(int row, int col,);// for each pixel of bucket
-	for (int m = -(kernelSize / 2); m < kernelSize / 2; ++m) // ++m
-	{
-		for (int n = -(kernelSize / 2); n < kernelSize / 2; ++n) // ++n
-		{
-			pValues[0] = data1[step * row + col * 3 + 0];
-			pValues[1] = data1[step * row + col * 3 + 1];
-			pValues[2] = data1[step * row + col * 3 + 2];
-			qValues[0] = data1[step * (row + m) + (col + n) * 3 + 0];
-			qValues[1] = data1[step * (row + m) + (col + n) * 3 + 1];
-			qValues[2] = data1[step * (row + m) + (col + n) * 3 + 2];
-
-			if (taxicab_dist(pValues, qValues) < adaptiveThreshold)
-			{
-				positivesY.push_back(row + m);
-				positivesX.push_back(col + n);
-			}
-		}
-	}
+	get_abw_coords(image1, row, col, pValues, qValues, positivesX, positivesY);
 
 	std::vector<uint> C(disparityRange, 0); // number of matches for given disparity
 
-	uint numberOfPositives = static_cast<uint>(positivesX.size());
-
-	// matching ** MEMORY ACCESS BOTTLENECK**
-	for (uint pixel = 0; pixel < numberOfPositives; ++pixel)
-	{
-		data1 = image1.ptr<uchar>(positivesY[pixel]) + positivesX[pixel] * 3;
-		data2 = image2.ptr<uchar>(positivesY[pixel]) + (positivesX[pixel] - disparityRange) * 3;
-
-		pValues[0] = *data1++;
-		pValues[1] = *data1++;
-		pValues[2] = *data1++;
-		for (int disparity = 0; disparity < disparityRange; ++disparity)
-		{
-			qValues[0] = *data2++;
-			qValues[1] = *data2++;
-			qValues[2] = *data2++;
-
-			if (taxicab_dist(pValues, qValues) < matchingThreshold)
-			{
-				++C[disparity];
-			}
-		}
-	}
+	match(image1, image2, positivesY, positivesX, C);
 
 	// TODO: make more elegant
 	uint maximum = *std::max_element(C.begin(), C.end());
@@ -121,6 +80,59 @@ uchar get_pixel_disparity(cv::Mat& image1, cv::Mat& image2, cv::Mat::MStep step,
 		{
 			return (disparityRange - index) * 255 / disparityRange;
 			break;
+		}
+	}
+}
+
+void get_abw_coords(cv::Mat& image1, int row, int col, const uchar pValues[3], uchar qValues[3], std::vector<uint>& positivesX, std::vector<uint>& positivesY)
+{
+	// for each pixel of bucket
+	uchar* data1;
+	for (int m = -(kernelSize / 2); m < kernelSize / 2; ++m) // ++m
+	{
+		data1 = image1.ptr<uchar>(row + m) + (col - kernelSize / 2)  * 3;
+		for (int n = -(kernelSize / 2); n < kernelSize / 2; ++n) // ++n
+		{
+			qValues[0] = *data1++;
+			qValues[1] = *data1++;
+			qValues[2] = *data1++;
+
+			if (taxicab_dist(pValues, qValues) < adaptiveThreshold)
+			{
+				positivesY.push_back(row + m);
+				positivesX.push_back(col + n);
+			}
+		}
+	}
+}
+
+void match(cv::Mat& image1, cv::Mat& image2, std::vector<uint>& Y, std::vector<uint>& X, std::vector<uint>& C)
+{
+	uint numberOfPositives = static_cast<uint>(X.size());
+	uchar* data1;
+	uchar* data2;
+	uchar pValues[3];
+	uchar qValues[3];
+
+	// matching ** MEMORY ACCESS BOTTLENECK**
+	for (uint pixel = 0; pixel < numberOfPositives; ++pixel)
+	{
+		data1 = image1.ptr<uchar>(Y[pixel]) + X[pixel] * 3;
+		data2 = image2.ptr<uchar>(Y[pixel]) + (X[pixel] - disparityRange) * 3;
+
+		pValues[0] = *data1++;
+		pValues[1] = *data1++;
+		pValues[2] = *data1++;
+		for (int disparity = 0; disparity < disparityRange; ++disparity)
+		{
+			qValues[0] = *data2++;
+			qValues[1] = *data2++;
+			qValues[2] = *data2++;
+
+			if (taxicab_dist(pValues, qValues) < matchingThreshold)
+			{
+				++C[disparity];
+			}
 		}
 	}
 }
