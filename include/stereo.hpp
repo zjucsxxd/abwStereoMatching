@@ -8,6 +8,6 @@
 void preprocess(cv::Mat& image);
 void postprocess(cv::Mat& image);
 cv::Mat generate_disparity_map(cv::Mat& image1, cv::Mat& image2);
-uchar get_pixel_disparity(uchar* data1, uchar* data2, cv::Mat::MStep step, int row, int col, const int& kernelSize);
+uchar get_pixel_disparity(cv::Mat& image1, cv::Mat& image2, cv::Mat::MStep step, int row, int col, const int& kernelSize);
 
 #endif

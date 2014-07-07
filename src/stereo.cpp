@@ -30,7 +30,7 @@ cv::Mat generate_disparity_map(cv::Mat& image1, cv::Mat& image2)
 	{
 		for (uint col = (kernelSize / 2) + disparityRange; col < width - (kernelSize / 2) + 1; ++col)
 		{
-			output.at<uchar>(row, col) = get_pixel_disparity(data1, data2, step, row, col, kernelSize);
+			output.at<uchar>(row, col) = get_pixel_disparity(image1, image2, step, row, col, kernelSize);
 		}
 	}
 
@@ -50,12 +50,15 @@ void postprocess(cv::Mat& image)
 	cv::resize(image, image, cv::Size(), 2.0f, 2.0f, CV_INTER_NN);
 }
 
-uchar get_pixel_disparity(uchar* data1, uchar* data2, cv::Mat::MStep step, int row, int col, const int& kernelSize)
+uchar get_pixel_disparity(cv::Mat& image1, cv::Mat& image2, cv::Mat::MStep step, int row, int col, const int& kernelSize)
 {
 	int pValues[3];
 	int qValues[3];
 
 	std::vector<uint> positivesY, positivesX; // containers for adaptive pixel coordinates
+
+	uchar* data1 = image1.data;
+	uchar* data2 = image2.data;
 
 	// get_abw_coords(int row, int col,);// for each pixel of bucket
 	for (int m = -(kernelSize / 2); m < kernelSize / 2; ++m) // ++m
@@ -81,25 +84,29 @@ uchar get_pixel_disparity(uchar* data1, uchar* data2, cv::Mat::MStep step, int r
 
 	uint numberOfPositives = static_cast<uint>(positivesX.size());
 
-	// matching **BOTTLENECK**
+	// matching ** MEMORY ACCESS BOTTLENECK**
 	for (uint pixel = 0; pixel < numberOfPositives; ++pixel)
 	{
+		data1 = image1.ptr<uchar>(positivesY[pixel]) + positivesX[pixel] * 3;
+		data2 = image2.ptr<uchar>(positivesY[pixel]) + (positivesX[pixel] - disparityRange) * 3;
+
+		pValues[0] = *data1++;
+		pValues[1] = *data1++;
+		pValues[2] = *data1++;
 		for (int disparity = 0; disparity < disparityRange; ++disparity)
 		{
-			pValues[0] = data1[step * positivesY[pixel] + positivesX[pixel] * 3 + 0];
-			pValues[1] = data1[step * positivesY[pixel] + positivesX[pixel] * 3 + 1];
-			pValues[2] = data1[step * positivesY[pixel] + positivesX[pixel] * 3 + 2];
-			qValues[0] = data2[step * positivesY[pixel] + (positivesX[pixel] - disparity) * 3 + 0];
-			qValues[1] = data2[step * positivesY[pixel] + (positivesX[pixel] - disparity) * 3 + 1];
-			qValues[2] = data2[step * positivesY[pixel] + (positivesX[pixel] - disparity) * 3 + 2];
+			qValues[0] = *data2++;
+			qValues[1] = *data2++;
+			qValues[2] = *data2++;
 
 			if (taxicab_dist(pValues, qValues) < matchingThreshold)
 			{
-				C[disparity] = C[disparity] + 1;
+				++C[disparity];
 			}
 		}
 	}
 
+	// TODO: make more elegant
 	uint maximum = *std::max_element(C.begin(), C.end());
 	int ambiguous = 0;
 	for (int a = 0; a < C.size(); ++a)
@@ -110,9 +117,9 @@ uchar get_pixel_disparity(uchar* data1, uchar* data2, cv::Mat::MStep step, int r
 	// TODO: find index of maximum (avoid for loop)
 	for (uint index = 0; index < C.size(); ++index)
 	{
-		if (C[index] == maximum /*&& ambiguous == 1*/)
+		if (C[index] == maximum && ambiguous == 1)
 		{
-			return index * 255 / disparityRange;
+			return (disparityRange - index) * 255 / disparityRange;
 			break;
 		}
 	}
