@@ -6,7 +6,7 @@ typedef unsigned char uchar;
 
 // TODO: +control, -global
 const int kernelSize = 25;
-const int disparityRange = 40;
+const int disparityRange = 20;
 const int adaptiveThreshold = 32;
 const int matchingThreshold = 8;
 
@@ -55,10 +55,6 @@ uchar get_pixel_disparity(uchar* data1, uchar* data2, cv::Mat::MStep step, int r
 	int pValues[3];
 	int qValues[3];
 
-	int difference;
-
-
-
 	std::vector<uint> positivesY, positivesX; // containers for adaptive pixel coordinates
 
 	// get_abw_coords(int row, int col,);// for each pixel of bucket
@@ -81,29 +77,25 @@ uchar get_pixel_disparity(uchar* data1, uchar* data2, cv::Mat::MStep step, int r
 		}
 	}
 
-	std::vector<uint> C(disparityRange + 1, 0); // number of matches for given disparity
+	std::vector<uint> C(disparityRange, 0); // number of matches for given disparity
 
 	uint numberOfPositives = static_cast<uint>(positivesX.size());
 
-	// TODO: bezveze
-	int activeIndex = -1;
-
-	// matching
-	for (int disparity = -disparityRange; disparity < 0; ++disparity)
+	// matching **BOTTLENECK**
+	for (uint pixel = 0; pixel < numberOfPositives; ++pixel)
 	{
-		++activeIndex;
-		for (uint pixel = 0; pixel < numberOfPositives; ++pixel)
+		for (int disparity = 0; disparity < disparityRange; ++disparity)
 		{
 			pValues[0] = data1[step * positivesY[pixel] + positivesX[pixel] * 3 + 0];
 			pValues[1] = data1[step * positivesY[pixel] + positivesX[pixel] * 3 + 1];
 			pValues[2] = data1[step * positivesY[pixel] + positivesX[pixel] * 3 + 2];
-			qValues[0] = data2[step * positivesY[pixel] + (positivesX[pixel] + disparity) * 3 + 0];
-			qValues[1] = data2[step * positivesY[pixel] + (positivesX[pixel] + disparity) * 3 + 1];
-			qValues[2] = data2[step * positivesY[pixel] + (positivesX[pixel] + disparity) * 3 + 2];
+			qValues[0] = data2[step * positivesY[pixel] + (positivesX[pixel] - disparity) * 3 + 0];
+			qValues[1] = data2[step * positivesY[pixel] + (positivesX[pixel] - disparity) * 3 + 1];
+			qValues[2] = data2[step * positivesY[pixel] + (positivesX[pixel] - disparity) * 3 + 2];
 
 			if (taxicab_dist(pValues, qValues) < matchingThreshold)
 			{
-				C[activeIndex] = C[activeIndex] + 1;
+				C[disparity] = C[disparity] + 1;
 			}
 		}
 	}
@@ -120,7 +112,7 @@ uchar get_pixel_disparity(uchar* data1, uchar* data2, cv::Mat::MStep step, int r
 	{
 		if (C[index] == maximum /*&& ambiguous == 1*/)
 		{
-			return (disparityRange - index) * 255 / (disparityRange + 1);
+			return index * 255 / disparityRange;
 			break;
 		}
 	}
