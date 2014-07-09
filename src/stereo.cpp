@@ -12,13 +12,13 @@ const int matchingThreshold = 8;
 void process_stereo_input(cv::Mat& image)
 {
 	while(!image.isContinuous()) { image = image.clone(); }
-	cv::resize(image, image, cv::Size(), 0.5f, 0.5f, CV_INTER_LINEAR);
+	cv::resize(image, image, cv::Size(), 0.25f, 0.25f, CV_INTER_LINEAR);
 	cv::cvtColor(image, image, CV_BGR2Lab, 1);
 }
 
 void process_stereo_output(cv::Mat& image)
 {
-	cv::resize(image, image, cv::Size(), 2.0f, 2.0f, CV_INTER_NN);
+	cv::resize(image, image, cv::Size(), 4.0f, 4.0f, CV_INTER_NN);
 }
 
 cv::Mat generate_disparity_map(cv::Mat& image1, cv::Mat& image2)
